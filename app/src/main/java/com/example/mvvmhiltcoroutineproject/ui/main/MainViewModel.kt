@@ -5,11 +5,11 @@ import com.example.mvvmhiltcoroutineproject.base.viewmodel.BaseViewModel
 import com.example.mvvmhiltcoroutineproject.data.repository.FakeStoreRepository
 import com.example.mvvmrxjavaproject.data.model.Product
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -28,12 +28,10 @@ class MainViewModel @Inject constructor(
     private fun fetchProducts() {
         viewModelScope.launch {
             repository.fetchProducts()
-                .flowOn(Dispatchers.IO)
-                .catch {
-                    _toastMessage.value = it.localizedMessage
-                }.collect {
-                    _products.value = it
-                }
+                .onStart { _shouldShowLoader.value = true }
+                .catch { _toastMessage.value = it.localizedMessage }
+                .onCompletion { _shouldShowLoader.value = false }
+                .collect { _products.value = it }
         }
     }
 }
