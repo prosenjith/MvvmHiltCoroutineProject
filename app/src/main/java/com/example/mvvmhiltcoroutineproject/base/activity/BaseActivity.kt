@@ -2,33 +2,45 @@ package com.example.mvvmhiltcoroutineproject.base.activity
 
 import android.os.Bundle
 import android.util.Log
-import androidx.activity.viewModels
 import androidx.annotation.LayoutRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.example.mvvmhiltcoroutineproject.base.fragment.BaseFragmentCallback
 import com.example.mvvmhiltcoroutineproject.base.viewmodel.BaseViewModel
-import com.example.mvvmhiltcoroutineproject.utils.ConnectivityLiveData
+import com.example.mvvmhiltcoroutineproject.utils.InternetConnectivityObserver
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-abstract class BaseActivity<DataBinding : ViewDataBinding> :
+abstract class BaseActivity<DataBinding : ViewDataBinding, ViewModel : BaseViewModel> :
     AppCompatActivity(), BaseFragmentCallback {
 
-    private lateinit var binding: DataBinding
+    protected lateinit var binding: DataBinding
 
-    private val baseViewModel:BaseViewModel by viewModels()
+    protected lateinit var viewModel: ViewModel
 
     @Inject
-    lateinit var internetConnectivityLiveData: ConnectivityLiveData
+    lateinit var internetConnectivityObserver: InternetConnectivityObserver
 
     @LayoutRes
     abstract fun getLayoutRes(): Int
 
+    abstract fun getViewModelClass(): Class<ViewModel>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         initDataBinding()
+        initViewModel()
         observeData()
+    }
+
+    override fun onDestroy() {
+        internetConnectivityObserver.cleanUp()
+        super.onDestroy()
     }
 
     private fun initDataBinding() {
@@ -36,15 +48,29 @@ abstract class BaseActivity<DataBinding : ViewDataBinding> :
         binding.lifecycleOwner = this
     }
 
+    private fun initViewModel() {
+        viewModel = ViewModelProvider(this)[getViewModelClass()]
+    }
+
     private fun observeData() {
-        internetConnectivityLiveData.observe(this) {
-            Log.e("TAG", "isInternetOn: $it")
-        }
-        baseViewModel.shouldShowLoader.observe(this) {
-            Log.e("TAG", "observeData: shouldShowLoader -> $it")
-        }
-        baseViewModel.toastMessage.observe(this) {
-            Log.e("TAG", "observeData: $it")
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch {
+                    internetConnectivityObserver.networkState.collect {
+                        Log.e("TAG", "isInternetOn: $it")
+                    }
+                }
+                launch {
+                    viewModel.loadingStatusFlow.collect {
+                        Log.e("TAG", "observeData: shouldShowLoader -> $it")
+                    }
+                }
+                launch {
+                    viewModel.toastMessageFlow.collect {
+                        Log.e("TAG", "observeData: $it")
+                    }
+                }
+            }
         }
     }
 }

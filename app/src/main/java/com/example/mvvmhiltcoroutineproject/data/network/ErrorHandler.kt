@@ -2,6 +2,7 @@ package com.example.mvvmhiltcoroutineproject.data.network
 
 import android.content.Context
 import com.example.mvvmhiltcoroutineproject.R
+import com.example.mvvmhiltcoroutineproject.utils.ConnectivityHelper
 import com.google.gson.Gson
 import okhttp3.ResponseBody
 import java.lang.reflect.Type

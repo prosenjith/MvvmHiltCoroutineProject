@@ -28,9 +28,9 @@ class MainViewModel @Inject constructor(
     private fun fetchProducts() {
         viewModelScope.launch {
             repository.fetchProducts()
-                .onStart { _shouldShowLoader.value = true }
-                .catch { _toastMessage.value = it.localizedMessage }
-                .onCompletion { _shouldShowLoader.value = false }
+                .onStart { setLoadingStatus(true) }
+                .catch { showToastMessage(it.localizedMessage) }
+                .onCompletion { setLoadingStatus(false) }
                 .collect { _products.value = it }
         }
     }

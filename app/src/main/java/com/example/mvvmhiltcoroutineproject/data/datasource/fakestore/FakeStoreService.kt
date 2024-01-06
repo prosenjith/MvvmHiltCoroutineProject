@@ -6,6 +6,6 @@ import retrofit2.http.GET
 
 interface FakeStoreService {
 
-    @GET("/products")
+    @GET("products")
     suspend fun fetchProducts(): Response<List<Product>>
 }
